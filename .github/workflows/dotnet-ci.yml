@@ -1,0 +1,55 @@
+# .github/workflows/dotnet-ci.yml
+
+# Name of the workflow (shows up in the Actions tab in GitHub)
+name: .NET CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+  # Triggers the workflow on pull request events but only for the "main" branch
+  pull_request:
+    branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build-and-test"
+  build-and-test:
+    # The type of runner that the job will run on
+    # Using ubuntu-latest is common and cost-effective for .NET projects
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Step 1: Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout code
+        uses: actions/checkout@v4 # Uses the official checkout action
+
+      # Step 2: Set up .NET SDK
+      # Replace '9.0.x' with the specific .NET version your project uses if needed
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x' 
+
+      # Step 3: Restore dependencies
+      # This command restores the NuGet packages for your solution
+      # Replace 'Product.API.sln' with your actual solution file name if different
+      - name: Restore dependencies
+        run: dotnet restore Product.API.sln
+
+      # Step 4: Build the solution
+      # This command builds your project in Release configuration
+      # Replace 'Product.API.sln' with your actual solution file name if different
+      - name: Build
+        run: dotnet build Product.API.sln --configuration Release --no-restore
+
+      # Step 5: Run tests
+      # This command runs all tests in your solution
+      # Replace 'Product.API.sln' with your actual solution file name if different
+      - name: Test
+        run: dotnet test Product.API.sln --configuration Release --no-build --verbosity normal
