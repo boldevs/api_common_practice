@@ -1,55 +1,49 @@
 # .github/workflows/dotnet-ci.yml
-
-# Name of the workflow (shows up in the Actions tab in GitHub)
 name: .NET CI
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push events but only for the "main" branch
   push:
-    branches: [ "main" ]
-  # Triggers the workflow on pull request events but only for the "main" branch
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
+    branches: ["main"]
   workflow_dispatch:
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build-and-test"
   build-and-test:
-    # The type of runner that the job will run on
-    # Using ubuntu-latest is common and cost-effective for .NET projects
     runs-on: ubuntu-latest
+    # Define a service container for Redis
+    # This will start a Redis container that your tests can connect to
+    services:
+      redis:
+        image: redis:alpine # Using alpine for a smaller image
+        ports:
+          # The port mapping here is for the runner's internal network,
+          # your app will connect to 'redis:6379'
+          - 6379:6379
+        # Optional: Add a health check for Redis to ensure it's ready
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Step 1: Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout code
-        uses: actions/checkout@v4 # Uses the official checkout action
+        uses: actions/checkout@v4
 
-      # Step 2: Set up .NET SDK
-      # Replace '9.0.x' with the specific .NET version your project uses if needed
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x' 
+          dotnet-version: "9.0.x"
 
-      # Step 3: Restore dependencies
-      # This command restores the NuGet packages for your solution
-      # Replace 'Product.API.sln' with your actual solution file name if different
       - name: Restore dependencies
         run: dotnet restore Product.API.sln
 
-      # Step 4: Build the solution
-      # This command builds your project in Release configuration
-      # Replace 'Product.API.sln' with your actual solution file name if different
       - name: Build
         run: dotnet build Product.API.sln --configuration Release --no-restore
 
-      # Step 5: Run tests
-      # This command runs all tests in your solution
-      # Replace 'Product.API.sln' with your actual solution file name if different
       - name: Test
         run: dotnet test Product.API.sln --configuration Release --no-build --verbosity normal
+        # Set an environment variable for the test run to tell the app
+        # where to find Redis. This overrides the appsettings.json value.
+        env:
+          ConnectionStrings__Redis: "redis:6379" # <-- CRITICAL CHANGE
+          # ASPNETCORE_ENVIRONMENT: "Development" # Or a specific test environment if you have one
