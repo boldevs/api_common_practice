@@ -1,0 +1,26 @@
+# Visual Studio / .NET Core
+## Ignore all files in the .vs folder (which is where most of your unwanted files are)
+.vs/
+
+## Ignore build output
+[Bb]in/
+[Oo]bj/
+
+## Ignore user-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## Ignore other tools and caches
+*.nupkg
+*.DotSettings.user
+*.VC.db
+*.VC.VC.opendb
+
+# Docker
+docker-compose.override.yml
+
+# Other common ignores
+*.DS_Store
+Thumbs.db

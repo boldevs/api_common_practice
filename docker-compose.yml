@@ -1,0 +1,54 @@
+services:
+  product-api:
+    build:
+      context: .
+      dockerfile: Product.API/Dockerfile
+    ports:
+      # This mapping assumes your app now listens on port 80 inside the container
+      # as configured in the hot-reload command and health check setup.
+      - "8080:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__Redis=redis:6379
+      - Serilog__WriteTo__1__Args__serverUrl=http://seq:80
+    volumes:
+      - ./Product.API/Data:/app/Data
+    depends_on:
+      redis:
+        condition: service_healthy
+      seq:
+        condition: service_started
+
+  seq:
+    image: datalust/seq:latest
+    ports:
+      - "5341:80"
+    environment:
+      - ACCEPT_EULA=Y
+    
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    restart: always
+    environment:
+      # Tells the commander to connect to the 'redis' service on its default port
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      # Expose the web UI on port 8081 on your machine
+      - "8081:8081"
+    depends_on:
+      - redis
+
+volumes:
+  redis-data:
