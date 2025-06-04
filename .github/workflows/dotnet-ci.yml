@@ -1,24 +1,24 @@
 # .github/workflows/dotnet-ci.yml
+
 name: .NET CI
+
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
   pull_request:
-    branches: ["main"]
+    branches: [ "main" ]
   workflow_dispatch:
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    # Define a service container for Redis
-    # This will start a Redis container that your tests can connect to
+
     services:
       redis:
-        image: redis:alpine # Using alpine for a smaller image
+        image: redis:alpine
         ports:
-          # The port mapping here is for the runner's internal network,
-          # your app will connect to 'redis:6379'
           - 6379:6379
-        # Optional: Add a health check for Redis to ensure it's ready
+        # Health check for Redis
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
@@ -32,7 +32,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "9.0.x"
+          dotnet-version: '9.0.x'
 
       - name: Restore dependencies
         run: dotnet restore Product.API.sln
@@ -40,10 +40,26 @@ jobs:
       - name: Build
         run: dotnet build Product.API.sln --configuration Release --no-restore
 
+      # Add a step to wait for Redis to be fully ready
+      - name: Wait for Redis
+        run: |
+          echo "Waiting for Redis to be ready..."
+          count=0
+          # Loop until 'nc' (netcat) can successfully connect to redis on port 6379
+          # or until the timeout (12 retries * 5 seconds = 60 seconds)
+          while ! nc -z redis 6379; do
+            if [ $count -gt 12 ]; then
+              echo "Redis did not become ready in time."
+              exit 1
+            fi
+            sleep 5
+            count=$((count+1))
+            echo "Still waiting for Redis... attempt $count"
+          done
+          echo "Redis is ready!"
+
       - name: Test
         run: dotnet test Product.API.sln --configuration Release --no-build --verbosity normal
-        # Set an environment variable for the test run to tell the app
-        # where to find Redis. This overrides the appsettings.json value.
         env:
-          ConnectionStrings__Redis: "redis:6379" # <-- CRITICAL CHANGE
-          # ASPNETCORE_ENVIRONMENT: "Development" # Or a specific test environment if you have one
+          ConnectionStrings__Redis: "redis:6379"
+          # ASPNETCORE_ENVIRONMENT: "Development" # Or a specific test environment
