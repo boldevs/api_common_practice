@@ -18,7 +18,6 @@ jobs:
         image: redis:alpine
         ports:
           - 6379:6379
-        # Health check for Redis
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
@@ -34,20 +33,20 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
+      - name: Install Redis CLI
+        run: sudo apt-get update && sudo apt-get install -y redis-tools
+
       - name: Restore dependencies
         run: dotnet restore Product.API.sln
 
       - name: Build
         run: dotnet build Product.API.sln --configuration Release --no-restore
 
-      # Add a step to wait for Redis to be fully ready
       - name: Wait for Redis
         run: |
           echo "Waiting for Redis to be ready..."
           count=0
-          # Loop until 'nc' (netcat) can successfully connect to redis on port 6379
-          # or until the timeout (12 retries * 5 seconds = 60 seconds)
-          while ! nc -z redis 6379; do
+          while ! redis-cli -h localhost -p 6379 ping | grep -q PONG; do
             if [ $count -gt 12 ]; then
               echo "Redis did not become ready in time."
               exit 1
@@ -61,5 +60,4 @@ jobs:
       - name: Test
         run: dotnet test Product.API.sln --configuration Release --no-build --verbosity normal
         env:
-          ConnectionStrings__Redis: "redis:6379"
-          # ASPNETCORE_ENVIRONMENT: "Development" # Or a specific test environment
+          ConnectionStrings__Redis: "localhost:6379"
