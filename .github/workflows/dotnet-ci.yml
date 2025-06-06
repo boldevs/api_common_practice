@@ -24,6 +24,20 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      postgres:
+        image: postgres:latest
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: yourpassword
+          POSTGRES_DB: ProductDb
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,6 +46,14 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
+
+      - name: Cache .NET packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget
 
       - name: Install Redis CLI
         run: sudo apt-get update && sudo apt-get install -y redis-tools
@@ -47,7 +69,7 @@ jobs:
           echo "Waiting for Redis to be ready..."
           count=0
           while ! redis-cli -h localhost -p 6379 ping | grep -q PONG; do
-            if [ $count -gt 12 ]; then
+            if [ $count -gt 20 ]; then
               echo "Redis did not become ready in time."
               exit 1
             fi
@@ -57,7 +79,23 @@ jobs:
           done
           echo "Redis is ready!"
 
+      - name: Wait for PostgreSQL
+        run: |
+          echo "Waiting for PostgreSQL to be ready..."
+          count=0
+          while ! pg_isready -h localhost -p 5432 -U postgres; do
+            if [ $count -gt 20 ]; then
+              echo "PostgreSQL did not become ready in time."
+              exit 1
+            fi
+            sleep 5
+            count=$((count+1))
+            echo "Still waiting for PostgreSQL... attempt $count"
+          done
+          echo "PostgreSQL is ready!"
+
       - name: Test
-        run: dotnet test Product.API.sln --configuration Release --no-build --verbosity normal
+        run: dotnet test Product.API.sln --configuration Release --no-build --verbosity normal --parallel
         env:
           ConnectionStrings__Redis: "localhost:6379"
+          ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=ProductDb;Username=postgres;Password=yourpassword"

@@ -21,10 +21,6 @@
 # Docker
 docker-compose.override.yml
 
-# SQLite database files
-*.db
-*.db-shm
-*.db-wal
 
 # Other common ignores
 *.DS_Store

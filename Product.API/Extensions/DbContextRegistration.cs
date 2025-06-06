@@ -10,7 +10,10 @@ namespace Product.API.Extensions
             if (!env.IsEnvironment("Testing"))
             {
                 services.AddDbContext<ApplicationDbContext>(options =>
-                    options.UseSqlite(config.GetConnectionString("DefaultConnection")));
+                {
+                    var connectionString = config.GetConnectionString("DefaultConnection");
+                    options.UseNpgsql(connectionString);
+                });
             }
         }
     }

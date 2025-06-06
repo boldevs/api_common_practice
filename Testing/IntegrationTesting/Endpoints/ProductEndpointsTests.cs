@@ -9,6 +9,7 @@ namespace Testing.IntegrationTesting.Endpoints
     public class ProductEndpointsTests : IClassFixture<TestApplicationFactory>
     {
         private readonly HttpClient _client;
+        private const string BaseUrl = "/api/v1/products";
 
         public ProductEndpointsTests(TestApplicationFactory factory)
         {
@@ -26,14 +27,15 @@ namespace Testing.IntegrationTesting.Endpoints
                 SKU = "INT-001"
             };
 
-            var response = await _client.PostAsJsonAsync("/api/v1/products", dto);
-            var content = await response.Content.ReadAsStringAsync();
+            var response = await _client.PostAsJsonAsync(BaseUrl, dto);
+            response.StatusCode.Should().Be(HttpStatusCode.Created);
 
-            response.StatusCode.Should().Be(HttpStatusCode.Created, content);
             var result = await response.Content.ReadFromJsonAsync<ProductResponseDto>();
-
             result.Should().NotBeNull();
             result!.Name.Should().Be(dto.Name);
+
+            // Cleanup
+            await _client.DeleteAsync($"{BaseUrl}/{result.Id}");
         }
 
         [Fact]
@@ -47,7 +49,7 @@ namespace Testing.IntegrationTesting.Endpoints
                 SKU = "GET-001"
             };
 
-            var postResponse = await _client.PostAsJsonAsync("/api/v1/products", createDto);
+            var postResponse = await _client.PostAsJsonAsync(BaseUrl, createDto);
             var created = await postResponse.Content.ReadFromJsonAsync<ProductResponseDto>();
 
             var getResponse = await _client.GetAsync($"/api/v1/products/{created!.Id}");
@@ -70,7 +72,7 @@ namespace Testing.IntegrationTesting.Endpoints
                 SKU = "PUT-001"
             };
 
-            var postResponse = await _client.PostAsJsonAsync("/api/v1/products", createDto);
+            var postResponse = await _client.PostAsJsonAsync(BaseUrl, createDto);
             var created = await postResponse.Content.ReadFromJsonAsync<ProductResponseDto>();
 
             // Act: Update it
@@ -94,7 +96,6 @@ namespace Testing.IntegrationTesting.Endpoints
         [Fact]
         public async Task DeleteProduct_ShouldReturnNoContent()
         {
-            // Arrange: Create a product to delete
             var createDto = new CreateProductDto
             {
                 Name = "Product to Delete",
@@ -103,17 +104,13 @@ namespace Testing.IntegrationTesting.Endpoints
                 SKU = "DEL-001"
             };
 
-            var postResponse = await _client.PostAsJsonAsync("/api/v1/products", createDto);
+            var postResponse = await _client.PostAsJsonAsync(BaseUrl, createDto);
             var created = await postResponse.Content.ReadFromJsonAsync<ProductResponseDto>();
 
-            // Act: Delete it
-            var deleteResponse = await _client.DeleteAsync($"/api/v1/products/{created!.Id}");
-
-            // Assert
+            var deleteResponse = await _client.DeleteAsync($"{BaseUrl}/{created!.Id}");
             deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-            // Optional: Try to GET it afterward to confirm it's gone
-            var getResponse = await _client.GetAsync($"/api/v1/products/{created.Id}");
+            var getResponse = await _client.GetAsync($"{BaseUrl}/{created.Id}");
             getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
 
@@ -130,7 +127,7 @@ namespace Testing.IntegrationTesting.Endpoints
             };
 
             foreach (var p in products)
-                await _client.PostAsJsonAsync("/api/v1/products", p);
+                await _client.PostAsJsonAsync(BaseUrl, p);
 
             var query = "?page=1&limit=2&search=apple";
 
