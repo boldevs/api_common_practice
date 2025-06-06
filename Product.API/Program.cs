@@ -1,4 +1,4 @@
-using Product.API.Caching; // Make sure you have this using for the cache service
+using Product.API.Caching;
 using Product.API.Endpoints.V1;
 using Product.API.Extensions;
 using Product.API.Middlewares;
@@ -7,11 +7,11 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- CORRECTED SERILOG SETUP ---
+// --- SERILOG SETUP ---
 builder.Host.UseSerilog((context, loggerConfig) => loggerConfig
     .ReadFrom.Configuration(context.Configuration));
 
-// --- THE REST OF YOUR SETUP IS EXCELLENT ---
+// --- DATABASE & CACHE SETUP ---
 builder.Services.AddConfiguredDbContext(builder.Configuration, builder.Environment);
 
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -20,22 +20,31 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "ProductAPI_";
 });
 
-// --- THE CORRECT WAY TO CHECK REDIS HEALTH ---
-
-// First, get the Redis connection string you've already configured
+// --- HEALTH CHECKS ---
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+var healthChecksBuilder = builder.Services.AddHealthChecks();
 
-// Then, add the health check using the proper Redis method
-builder.Services.AddHealthChecks()
-    .AddRedis(redisConnectionString, name: "Redis Cache"); // This speaks the correct language
-    
-// Register our custom, abstract cache service
+// Only add the Redis health check if the connection string exists
+if (!string.IsNullOrEmpty(redisConnectionString))
+{
+    healthChecksBuilder.AddRedis(redisConnectionString, name: "Redis Cache");
+}
+
+// --- SERVICES ---
 builder.Services.AddSingleton<ICacheService, RedisCacheService>();
-
 builder.Services.AddScoped<IProductService, ProductService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// ***************************************************************
+// *** IMPORTANT: CONFIGURE APP TO LISTEN ON RENDER'S PORT ***
+// This line tells your app to listen on the port Render provides.
+// It falls back to port 8080 if the PORT variable isn't set (for local dev).
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://*:{port}");
+// ***************************************************************
+
 
 var app = builder.Build();
 
@@ -43,8 +52,10 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-
-app.UseHttpsRedirection();
+// ***************************************************************
+// *** IMPORTANT: REMOVED HTTPS REDIRECTION FOR RENDER ***
+// app.UseHttpsRedirection(); // This line is removed as Render handles HTTPS.
+// ***************************************************************
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
@@ -55,4 +66,5 @@ app.MapHealthChecks("/health");
 
 app.Run();
 
+// Make the Program class public for testing purposes
 public partial class Program { }
