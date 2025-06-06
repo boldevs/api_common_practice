@@ -95,7 +95,7 @@ jobs:
           echo "PostgreSQL is ready!"
 
       - name: Test
-        run: dotnet test Product.API.sln --configuration Release --no-build --verbosity normal --parallel
+        run: dotnet test Product.API.sln --configuration Release --no-build --verbosity normal
         env:
           ConnectionStrings__Redis: "localhost:6379"
           ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=ProductDb;Username=postgres;Password=yourpassword"
