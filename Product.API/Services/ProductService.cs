@@ -38,7 +38,10 @@ namespace Product.API.Services
                 int totalCount = await productsQuery.CountAsync();
                 int skip = (query.Page - 1) * query.Limit;
 
+                // --- FIX: Add OrderBy clause for predictable paging ---
+                // This ensures the order of products is the same every time you query.
                 var items = await productsQuery
+                    .OrderBy(p => p.CreatedAt) // Ordering by creation date
                     .Skip(skip)
                     .Take(query.Limit)
                     .Select(p => new ProductResponseDto

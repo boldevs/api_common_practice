@@ -1,3 +1,9 @@
+version: '3.8'
+
+networks:
+  product-api-network:
+    driver: bridge
+
 services:
   product-api:
     build:
@@ -19,6 +25,8 @@ services:
         condition: service_healthy
       seq:
         condition: service_started
+    networks:
+      - product-api-network
 
   seq:
     image: datalust/seq:latest
@@ -26,6 +34,8 @@ services:
       - "5341:80"
     environment:
       - ACCEPT_EULA=Y
+    networks:
+      - product-api-network
     
   redis:
     image: redis:alpine
@@ -38,6 +48,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - product-api-network
 
   redis-commander:
     image: rediscommander/redis-commander:latest
@@ -50,6 +62,8 @@ services:
       - "8081:8081"
     depends_on:
       - redis
+    networks:
+      - product-api-network
 
   postgres:
     image: postgres:latest
@@ -66,6 +80,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - product-api-network
 
 volumes:
   redis-data:

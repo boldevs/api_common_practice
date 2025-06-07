@@ -18,13 +18,14 @@ builder.Services.AddConfiguredDbContext(builder.Configuration, builder.Environme
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-    options.Configuration = builder.Configuration.GetConnectionString("Redis");
-    options.InstanceName = "ProductAPI_";
-    options.ConfigurationOptions = new StackExchange.Redis.ConfigurationOptions
+    var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+    if (string.IsNullOrEmpty(redisConnectionString))
     {
-        ConnectTimeout = 10000, // Increase timeout to 10 seconds
-        SyncTimeout = 10000
-    };
+        throw new ArgumentException("Redis connection string is not configured.");
+    }
+
+    options.Configuration = redisConnectionString;
+    options.InstanceName = "ProductAPI_";
 });
 
 // --- HEALTH CHECKS ---

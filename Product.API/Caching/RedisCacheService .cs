@@ -59,6 +59,10 @@ namespace Product.API.Caching
             {
                 await _cache.RemoveAsync(key);
             }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "Redis configuration is invalid: {Message}", ex.Message);
+            }
             catch (RedisConnectionException ex)
             {
                 _logger.LogError(ex, "Failed to connect to Redis while removing key: {Key}", key);
