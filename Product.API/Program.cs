@@ -16,23 +16,22 @@ builder.Host.UseSerilog((context, loggerConfig) => loggerConfig
 // --- DATABASE & CACHE SETUP ---
 builder.Services.AddConfiguredDbContext(builder.Configuration, builder.Environment);
 
-builder.Services.AddStackExchangeRedisCache(options =>
+// --- ROBUST REDIS CONFIGURATION ---
+// This will only add the Redis services if the connection string is present
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+if (!string.IsNullOrEmpty(redisConnectionString))
 {
-    var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
-    if (string.IsNullOrEmpty(redisConnectionString))
+    builder.Services.AddStackExchangeRedisCache(options =>
     {
-        throw new ArgumentException("Redis connection string is not configured.");
-    }
+        options.Configuration = redisConnectionString;
+        options.InstanceName = "ProductAPI_";
+    });
+}
+// ------------------------------------
 
-    options.Configuration = redisConnectionString;
-    options.InstanceName = "ProductAPI_";
-});
 
 // --- HEALTH CHECKS ---
-var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
 var healthChecksBuilder = builder.Services.AddHealthChecks();
-
-// Only add the Redis health check if the connection string exists
 if (!string.IsNullOrEmpty(redisConnectionString))
 {
     healthChecksBuilder.AddRedis(redisConnectionString, name: "Redis Cache");

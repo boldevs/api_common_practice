@@ -39,7 +39,6 @@ namespace Product.API.Services
                 int skip = (query.Page - 1) * query.Limit;
 
                 // --- FIX: Add OrderBy clause for predictable paging ---
-                // This ensures the order of products is the same every time you query.
                 var items = await productsQuery
                     .OrderBy(p => p.CreatedAt) // Ordering by creation date
                     .Skip(skip)
@@ -95,7 +94,7 @@ namespace Product.API.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching product by ID: {ProductId}", id);
-                throw; // Let global middleware handle the exception
+                throw; 
             }
         }
         public async Task<ProductResponseDto> CreateAsync(CreateProductDto dto)
@@ -140,7 +139,7 @@ namespace Product.API.Services
                     return null;
                 }
 
-                // ... update properties ...
+                
                 product.Name = dto.Name;
                 product.Description = dto.Description;
                 product.Price = dto.Price;
@@ -148,8 +147,7 @@ namespace Product.API.Services
                 product.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
-
-                // BEST PRACTICE: Invalidate the cache for this item
+                
                 string cacheKey = $"product:{id}";
                 await _cacheService.RemoveDataAsync(cacheKey);
                 _logger.LogInformation("Cache invalidated for product ID: {ProductId}", id);
@@ -177,8 +175,7 @@ namespace Product.API.Services
 
                 _context.Products.Remove(product);
                 await _context.SaveChangesAsync();
-
-                // BEST PRACTICE: Invalidate the cache for this item
+                
                 string cacheKey = $"product:{id}";
                 await _cacheService.RemoveDataAsync(cacheKey);
                 _logger.LogInformation("Cache invalidated for product ID: {ProductId}", id);
