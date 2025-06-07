@@ -10,6 +10,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__Redis=redis:6379
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ProductDb;Username=postgres;Password=yourpassword
       - Serilog__WriteTo__1__Args__serverUrl=http://seq:80
     volumes:
       - ./Product.API/Data:/app/Data
