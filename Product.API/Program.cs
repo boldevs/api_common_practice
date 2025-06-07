@@ -20,6 +20,11 @@ builder.Services.AddStackExchangeRedisCache(options =>
 {
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
     options.InstanceName = "ProductAPI_";
+    options.ConfigurationOptions = new StackExchange.Redis.ConfigurationOptions
+    {
+        ConnectTimeout = 10000, // Increase timeout to 10 seconds
+        SyncTimeout = 10000
+    };
 });
 
 // --- HEALTH CHECKS ---
