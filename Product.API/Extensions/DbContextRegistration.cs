@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Product.API.Data;
+using Npgsql;
 
 namespace Product.API.Extensions
 {
@@ -9,12 +10,21 @@ namespace Product.API.Extensions
         {
             if (!env.IsEnvironment("Testing"))
             {
+                var rawConnectionString = config.GetConnectionString("DefaultConnection");
+
+                // Normalize connection string if it is a URL style
+                if (!string.IsNullOrEmpty(rawConnectionString) && rawConnectionString.StartsWith("postgres://"))
+                {
+                    var builder = new NpgsqlConnectionStringBuilder(rawConnectionString);
+                    rawConnectionString = builder.ConnectionString;
+                }
+
                 services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    var connectionString = config.GetConnectionString("DefaultConnection");
-                    options.UseNpgsql(connectionString);
+                    options.UseNpgsql(rawConnectionString);
                 });
             }
         }
+
     }
 }
