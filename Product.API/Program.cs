@@ -56,9 +56,15 @@ app.UseSwaggerUI();
 
 using (var scope = app.Services.CreateScope())
 {
+    var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
+
+    if (!env.IsEnvironment("Testing") && db.Database.IsRelational())
+    {
+        db.Database.Migrate();
+    }
 }
+
 
 // ***************************************************************
 // *** IMPORTANT: REMOVED HTTPS REDIRECTION FOR RENDER ***
