@@ -3,7 +3,9 @@ using Product.API.Endpoints.V1;
 using Product.API.Extensions;
 using Product.API.Middlewares;
 using Product.API.Services;
+using Product.API.Data;
 using Serilog;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
